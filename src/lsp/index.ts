@@ -40,6 +40,11 @@ documents.onDidChangeContent(async (e) => {
   }
 
   const convertDiagnostic = (diagnostic: ParserErrorWarning, severity: DiagnosticSeverity): Diagnostic[] => {
+    if (diagnostic.category === 'invalid-config' || diagnostic.category === 'invalid-library-config') {
+      // Use the JSON schema validation errors instead
+      return [];
+    }
+
     if (!(diagnostic.instancePath in pointers)) {
       return [];
     }
