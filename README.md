@@ -20,6 +20,7 @@ To run this demo experiment locally, you will need to install Node.js on your co
 
 * Clone `https://github.com/revisit-studies/study`
 * Run `yarn install`. If you don't have Yarn installed, run `npm i -g yarn`.
+* If you're using VS Code, run `yarn vscode-extension` to install the linter extension.
 * To run locally, run `yarn serve`.
 * Go to [http://localhost:8080](http://localhost:8080) to view it in your browser. The page will reload when you make changes.
 

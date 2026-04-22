@@ -1,0 +1,17 @@
+{
+  "name": "revisit-vscode-extension",
+  "displayName": "ReVISit",
+  "private": true,
+  "version": "0.0.0",
+  "type": "commonjs",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "main": "dist/extension.js",
+  "scripts": {
+    "install-extension": "esbuild src/extension.ts --bundle --platform=node --external:vscode --outfile=dist/extension.js && vsce package --no-dependencies --allow-missing-repository --skip-license && code --install-extension revisit-vscode-extension-0.0.0.vsix"
+  },
+  "activationEvents": [
+    "workspaceContains:public/*/config.json"
+  ]
+}
