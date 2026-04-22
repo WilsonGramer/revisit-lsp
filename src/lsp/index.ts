@@ -53,6 +53,7 @@ documents.onDidChangeContent(async (e) => {
         end: { line: end.line, character: end.column },
       },
       message: diagnostic.message,
+      code: diagnostic.category,
       source: 'revisit',
     }];
   };
