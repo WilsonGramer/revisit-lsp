@@ -35,7 +35,8 @@ documents.onDidChangeContent(async (e) => {
   try {
     pointers = parseWithSourceMap(document).pointers;
     parsedConfig = await parseStudyConfig(document);
-  } catch {
+  } catch (error) {
+    console.error(error);
     return;
   }
 
@@ -45,11 +46,14 @@ documents.onDidChangeContent(async (e) => {
       return [];
     }
 
-    if (!(diagnostic.instancePath in pointers)) {
+    // Remove trailing slash
+    const instancePath = diagnostic.instancePath.replace(/\/$/, '');
+
+    if (!(instancePath in pointers)) {
       return [];
     }
 
-    const { value: start, valueEnd: end } = pointers[diagnostic.instancePath];
+    const { value: start, valueEnd: end } = pointers[instancePath];
 
     return [{
       severity,

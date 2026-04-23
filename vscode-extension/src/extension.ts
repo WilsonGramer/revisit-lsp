@@ -16,6 +16,9 @@ export const activate = () => {
   const serverOptions: ServerOptions = {
     module: `${vscode.workspace.workspaceFolders[0].uri.fsPath}/dist/lsp/index.cjs`,
     transport: TransportKind.ipc,
+    options: {
+      execArgv: ['--enable-source-maps'],
+    },
   };
 
   const clientOptions: LanguageClientOptions = {

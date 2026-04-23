@@ -5,8 +5,8 @@ import {
   ComponentBlock, IndividualComponent, LibraryConfig, ParsedConfig, ParserErrorWarning, StudyConfig,
 } from './types';
 import { isDynamicBlock, isInheritedComponent } from './utils';
-import { PREFIX } from '../utils/Prefix';
 import { getSequenceFlatMapWithInterruptions } from '../utils/getSequenceFlatMap';
+import { fetchFromPrefix } from '../utils/fetchFromPrefix';
 
 const ajv = new Ajv({ allowUnionTypes: true });
 ajv.addSchema(librarySchema);
@@ -262,23 +262,35 @@ function parseLibraryConfig(fileData: string, libraryName: string): ParsedConfig
 }
 
 async function getLibraryConfig(libraryName: string) {
-  const config = await (await fetch(`${PREFIX}libraries/${libraryName}/config.json`)).text();
+  const config = await fetchFromPrefix(`libraries/${libraryName}/config.json`);
   return parseLibraryConfig(config, libraryName);
 }
 
 export async function loadLibrariesParseNamespace(importedLibraries: string[], errors: ParserErrorWarning[], warnings: ParserErrorWarning[]) {
   const loadedLibraries = importedLibraries.map(async (library) => {
-    const libraryData = await getLibraryConfig(library);
-    if (libraryData.errors) {
-      errors.push(...libraryData.errors);
-    }
-    if (libraryData.warnings) {
-      warnings.push(...libraryData.warnings);
-    }
+    try {
+      const libraryData = await getLibraryConfig(library);
+      if (libraryData.errors) {
+        errors.push(...libraryData.errors);
+      }
+      if (libraryData.warnings) {
+        warnings.push(...libraryData.warnings);
+      }
 
-    return [library, libraryData];
+      return [[library, libraryData]];
+    } catch (error) {
+      errors.push({
+        category: 'undefined-library',
+        instancePath: '/importedLibraries/',
+        message: `failed to load library '${library}': ${error}`,
+        params: {},
+      });
+
+      return [];
+    }
   });
-  const importedLibrariesData: Record<string, ParsedConfig<LibraryConfigWithInheritanceMetadata>> = Object.fromEntries(await Promise.all(loadedLibraries));
+
+  const importedLibrariesData: Record<string, ParsedConfig<LibraryConfigWithInheritanceMetadata>> = Object.fromEntries((await Promise.all(loadedLibraries)).flat());
 
   // Filter out the missing imported libraries
   Object.entries(importedLibrariesData).forEach(([libraryName, libraryData]) => {
