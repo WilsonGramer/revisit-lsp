@@ -341,6 +341,26 @@ function verifyLibraryUsage(context: Context) {
   });
 }
 
+// Verify that screen recording permissions are properly requested
+function verifyScreenRecordingPermissions(context: Context) {
+  const screenRecordingPermissionComponentName = '$screen-recording.components.screenRecordingPermission';
+
+  if (!context.studyConfig.uiConfig.recordScreen) {
+    return;
+  }
+
+  const usedComponents = getSequenceFlatMapWithInterruptions(context.studyConfig.sequence);
+
+  if (!usedComponents.includes(screenRecordingPermissionComponentName)) {
+    context.errors.push({
+      message: '`recordScreen` is set, but the screen recording permission component is missing',
+      instancePath: '/sequence/',
+      params: { action: `Add the \`${screenRecordingPermissionComponentName}\` component here` },
+      category: 'sequence-validation',
+    });
+  }
+}
+
 const verifyPasses = [
   verifyConditionalBlocks,
   verifyContactEmail,
@@ -348,6 +368,7 @@ const verifyPasses = [
   verifySequences,
   verifySkipBlocks,
   verifyLibraryUsage,
+  verifyScreenRecordingPermissions,
 ];
 
 // This function verifies the study config file satisfies conditions that are not covered by the schema
