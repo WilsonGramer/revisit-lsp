@@ -363,6 +363,24 @@ function verifyScreenRecordingPermissions(context: Context) {
   }
 }
 
+// Verify that the demographics questions comes last in the sequence
+function verifyDemographicsQuestions(context: Context) {
+  const demographicsComponentName = '$demographics.components.demographics';
+
+  const usedComponents = getSequenceFlatMapWithInterruptions(context.studyConfig.sequence);
+
+  const index = usedComponents.indexOf(demographicsComponentName);
+
+  if (index !== -1 && index !== usedComponents.length - 1) {
+    context.warnings.push({
+      message: 'Demographics questions should come last in the sequence',
+      instancePath: '/sequence/',
+      params: { action: `Move the \`${demographicsComponentName}\` component to the end` },
+      category: 'sequence-validation',
+    });
+  }
+}
+
 const verifyPasses = [
   {
     id: 'conditional-blocks',
@@ -398,6 +416,11 @@ const verifyPasses = [
     id: 'screen-recording-permissions',
     verify: verifyScreenRecordingPermissions,
     defaultEnabled: true,
+  },
+  {
+    id: 'demographics',
+    verify: verifyDemographicsQuestions,
+    defaultEnabled: false,
   },
 ];
 
