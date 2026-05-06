@@ -55,13 +55,18 @@ documents.onDidChangeContent(async (e) => {
 
     const { value: start, valueEnd: end } = pointers[instancePath];
 
+    let { message } = diagnostic;
+    if ('action' in diagnostic.params && typeof diagnostic.params.action === 'string') {
+      message += `\n${diagnostic.params.action}`;
+    }
+
     return [{
       severity,
       range: {
         start: { line: start.line, character: start.column },
         end: { line: end.line, character: end.column },
       },
-      message: diagnostic.message,
+      message,
       code: diagnostic.category,
       source: 'revisit',
     }];
