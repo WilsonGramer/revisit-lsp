@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as fs from 'node:fs';
 import {
   LanguageClient,
   LanguageClientOptions,
@@ -13,8 +14,21 @@ export const activate = () => {
     return;
   }
 
+  const workspacePath = vscode.workspace.workspaceFolders[0].uri.fsPath;
+
+  const lintConfigPath = `${workspacePath}/lint-config.json`;
+
+  let lintConfig = {};
+  if (fs.existsSync(lintConfigPath)) {
+    try {
+      lintConfig = JSON.parse(fs.readFileSync(lintConfigPath, 'utf8'));
+    } catch (error) {
+      console.warn('failed to read lint config:', error);
+    }
+  }
+
   const serverOptions: ServerOptions = {
-    module: `${vscode.workspace.workspaceFolders[0].uri.fsPath}/dist/lsp/index.cjs`,
+    module: `${workspacePath}/dist/lsp/index.cjs`,
     transport: TransportKind.ipc,
     options: {
       execArgv: ['--enable-source-maps'],
@@ -23,6 +37,7 @@ export const activate = () => {
 
   const clientOptions: LanguageClientOptions = {
     documentSelector: [{ scheme: 'file', language: 'json', pattern: '**/config.json' }],
+    initializationOptions: { lintConfig },
   };
 
   client = new LanguageClient(

@@ -13,15 +13,28 @@ import { parse as parseWithSourceMap, Pointers } from 'json-source-map';
 import { parseStudyConfig } from '../parser/parser';
 import { ParsedConfig, ParserErrorWarning, StudyConfig } from '../parser/types';
 
+interface LintConfig {
+  enabled?: string[];
+  disabled?: string[];
+}
+
 const connection = createConnection(ProposedFeatures.all);
 
 const documents = new TextDocuments(TextDocument);
 
-connection.onInitialize((_params) => ({
-  capabilities: {
-    textDocumentSync: TextDocumentSyncKind.Full,
-  },
-}));
+let lintConfig: LintConfig = {};
+
+connection.onInitialize((params) => {
+  if ('lintConfig' in params.initializationOptions) {
+    lintConfig = params.initializationOptions.lintConfig;
+  }
+
+  return {
+    capabilities: {
+      textDocumentSync: TextDocumentSyncKind.Full,
+    },
+  };
+});
 
 documents.onDidChangeContent(async (e) => {
   if (!e.document.uri.endsWith('/config.json')) {
@@ -34,7 +47,7 @@ documents.onDidChangeContent(async (e) => {
   let parsedConfig: ParsedConfig<StudyConfig>;
   try {
     pointers = parseWithSourceMap(document).pointers;
-    parsedConfig = await parseStudyConfig(document);
+    parsedConfig = await parseStudyConfig(document, lintConfig);
   } catch (error) {
     console.error(error);
     return;

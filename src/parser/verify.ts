@@ -2,6 +2,7 @@ import { getSequenceFlatMapWithInterruptions } from '../utils/getSequenceFlatMap
 import { LibraryConfigWithInheritanceMetadata } from './libraryParser';
 import {
   IndividualComponent,
+  LintConfig,
   ParsedConfig,
   StudyConfig,
 } from './types';
@@ -10,6 +11,7 @@ import { isDynamicBlock, isInheritedComponent } from './utils';
 interface Context {
   studyConfig: StudyConfig;
   importedLibraries: Record<string, LibraryConfigWithInheritanceMetadata>,
+  lintConfig: LintConfig;
   errors: ParsedConfig<StudyConfig>['errors'];
   warnings: ParsedConfig<StudyConfig>['warnings'];
 }
@@ -362,29 +364,64 @@ function verifyScreenRecordingPermissions(context: Context) {
 }
 
 const verifyPasses = [
-  verifyConditionalBlocks,
-  verifyContactEmail,
-  verifyComponents,
-  verifySequences,
-  verifySkipBlocks,
-  verifyLibraryUsage,
-  verifyScreenRecordingPermissions,
+  {
+    id: 'conditional-blocks',
+    verify: verifyConditionalBlocks,
+    defaultEnabled: true,
+  },
+  {
+    id: 'contact-email',
+    verify: verifyContactEmail,
+    defaultEnabled: true,
+  },
+  {
+    id: 'components',
+    verify: verifyComponents,
+    defaultEnabled: true,
+  },
+  {
+    id: 'sequences',
+    verify: verifySequences,
+    defaultEnabled: true,
+  },
+  {
+    id: 'skip-blocks',
+    verify: verifySkipBlocks,
+    defaultEnabled: true,
+  },
+  {
+    id: 'library-usage',
+    verify: verifyLibraryUsage,
+    defaultEnabled: true,
+  },
+  {
+    id: 'screen-recording-permissions',
+    verify: verifyScreenRecordingPermissions,
+    defaultEnabled: true,
+  },
 ];
 
 // This function verifies the study config file satisfies conditions that are not covered by the schema
-export function verifyStudyConfig(studyConfig: StudyConfig, importedLibraries: Record<string, LibraryConfigWithInheritanceMetadata>) {
+export function verifyStudyConfig(studyConfig: StudyConfig, importedLibraries: Record<string, LibraryConfigWithInheritanceMetadata>, lintConfig: LintConfig) {
   const errors: ParsedConfig<StudyConfig>['errors'] = [];
   const warnings: ParsedConfig<StudyConfig>['warnings'] = [];
 
   const context: Context = {
     studyConfig,
     importedLibraries,
+    lintConfig,
     errors,
     warnings,
   };
 
   for (const pass of verifyPasses) {
-    pass(context);
+    let enabled = pass.defaultEnabled;
+    if (lintConfig.enabled?.includes(pass.id)) enabled = true;
+    if (lintConfig.disabled?.includes(pass.id)) enabled = false;
+
+    if (enabled) {
+      pass.verify(context);
+    }
   }
 
   return { errors, warnings };

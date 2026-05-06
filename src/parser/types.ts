@@ -1911,6 +1911,15 @@ export type ParsedConfig<T> = T & {
 }
 
 /**
+ * Represents the contents of the `lint-config.json` file, where users can
+ * enable or disable specific lint rules.
+ */
+export type LintConfig = {
+  enabled?: string[];
+  disabled?: string[];
+}
+
+/**
  * @ignore
  * Helper type to avoid writing Type | undefined | null
  */

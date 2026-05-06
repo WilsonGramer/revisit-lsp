@@ -4,6 +4,7 @@ import configSchema from './StudyConfigSchema.json';
 import globalSchema from './GlobalConfigSchema.json';
 import {
   GlobalConfig, ParsedConfig, StudyConfig, ParserErrorWarning,
+  LintConfig,
 } from './types';
 import { expandLibrarySequences, loadLibrariesParseNamespace } from './libraryParser';
 import { verifyStudyConfig } from './verify';
@@ -43,7 +44,7 @@ export function parseGlobalConfig(fileData: string) {
   throw Error('There was an issue validating your file global.json');
 }
 
-export async function parseStudyConfig(fileData: string): Promise<ParsedConfig<StudyConfig>> {
+export async function parseStudyConfig(fileData: string, lintConfig: LintConfig = {}): Promise<ParsedConfig<StudyConfig>> {
   let validatedData = false;
   let data: StudyConfig | undefined;
 
@@ -91,7 +92,7 @@ export async function parseStudyConfig(fileData: string): Promise<ParsedConfig<S
     // Expand the imported sequences to use the correct component names
     data.sequence = expandLibrarySequences(data.sequence, importedLibrariesData, errors);
 
-    const { errors: parserErrors, warnings: parserWarnings } = verifyStudyConfig(data, importedLibrariesData);
+    const { errors: parserErrors, warnings: parserWarnings } = verifyStudyConfig(data, importedLibrariesData, lintConfig);
     errors = [...errors, ...parserErrors];
     warnings = [...warnings, ...parserWarnings];
   } else {
