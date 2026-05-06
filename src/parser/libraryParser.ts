@@ -16,7 +16,7 @@ type SequenceWithImportReference = StudyConfig['sequence'] & {
   __revisitImportedSequenceRef?: string;
 };
 
-type LibraryConfigWithInheritanceMetadata = LibraryConfig & {
+export type LibraryConfigWithInheritanceMetadata = LibraryConfig & {
   __revisitInheritedComponentMetadata?: Record<string, { baseComponent: string; withSidebar?: boolean }>;
 };
 
