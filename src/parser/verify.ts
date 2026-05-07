@@ -8,6 +8,12 @@ import {
 } from './types';
 import { isDynamicBlock, isInheritedComponent } from './utils';
 
+let fs: typeof import('node:fs') | undefined;
+if (import.meta.env.MODE === 'lsp') {
+  // eslint-disable-next-line global-require, @typescript-eslint/no-require-imports
+  fs = require('node:fs');
+}
+
 interface Context {
   studyConfig: StudyConfig;
   importedLibraries: Record<string, LibraryConfigWithInheritanceMetadata>,
@@ -363,6 +369,40 @@ function verifyScreenRecordingPermissions(context: Context) {
   }
 }
 
+// Verify that paths exist under the correct base directory
+function verifyPaths(context: Context) {
+  if (fs == null) {
+    return; // only supported in LSP
+  }
+
+  if (context.studyConfig.baseComponents == null) {
+    return;
+  }
+
+  const reportMissingPath = (instancePath: string, action: string) => {
+    context.errors.push({
+      message: 'Unresolved path',
+      instancePath,
+      params: { action },
+      category: 'undefined-component',
+    });
+  };
+
+  for (const key of ['baseComponents', 'components'] as const) {
+    for (const [name, component] of Object.entries(context.studyConfig[key] ?? {})) {
+      if ('path' in component && component.path != null) {
+        const { base, action } = component.type === 'react-component'
+          ? { base: 'src/public/', action: 'Make sure the React component is in `src/public/`, not `public/`' }
+          : { base: 'public/', action: 'Make sure the file is in `public/`, not `src/public/`' };
+
+        if (!fs.existsSync(`./${base}${component.path}`)) {
+          reportMissingPath(`/${key}/${name}/path`, action);
+        }
+      }
+    }
+  }
+}
+
 // Verify that the demographics questions comes last in the sequence
 function verifyDemographicsQuestions(context: Context) {
   const demographicsComponentName = '$demographics.components.demographics';
@@ -415,6 +455,11 @@ const verifyPasses = [
   {
     id: 'screen-recording-permissions',
     verify: verifyScreenRecordingPermissions,
+    defaultEnabled: true,
+  },
+  {
+    id: 'paths',
+    verify: verifyPaths,
     defaultEnabled: true,
   },
   {
