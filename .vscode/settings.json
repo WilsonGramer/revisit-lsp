@@ -1,5 +1,8 @@
 {
   "yaml.schemas": {
     "./src/parser/StudyConfigSchema.json": "*.yaml"
+  },
+  "revisit-lsp.trace.server": {
+    "default": "verbose"
   }
 }

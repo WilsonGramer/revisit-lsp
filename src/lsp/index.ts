@@ -1,0 +1,99 @@
+/* eslint-disable no-console */
+
+import {
+  createConnection,
+  Diagnostic,
+  DiagnosticSeverity,
+  ProposedFeatures,
+  TextDocuments,
+  TextDocumentSyncKind,
+} from 'vscode-languageserver/node';
+import { TextDocument } from 'vscode-languageserver-textdocument';
+import { parse as parseWithSourceMap, Pointers } from 'json-source-map';
+import { parseStudyConfig } from '../parser/parser';
+import { ParsedConfig, ParserErrorWarning, StudyConfig } from '../parser/types';
+
+interface LintConfig {
+  enabled?: string[];
+  disabled?: string[];
+}
+
+const connection = createConnection(ProposedFeatures.all);
+
+const documents = new TextDocuments(TextDocument);
+
+let lintConfig: LintConfig = {};
+
+connection.onInitialize((params) => {
+  if ('lintConfig' in params.initializationOptions) {
+    lintConfig = params.initializationOptions.lintConfig;
+  }
+
+  return {
+    capabilities: {
+      textDocumentSync: TextDocumentSyncKind.Full,
+    },
+  };
+});
+
+documents.onDidChangeContent(async (e) => {
+  if (!e.document.uri.endsWith('/config.json')) {
+    return;
+  }
+
+  const document = e.document.getText();
+
+  let pointers: Pointers;
+  let parsedConfig: ParsedConfig<StudyConfig>;
+  try {
+    pointers = parseWithSourceMap(document).pointers;
+    parsedConfig = await parseStudyConfig(document, lintConfig);
+  } catch (error) {
+    console.error(error);
+    return;
+  }
+
+  const convertDiagnostic = (diagnostic: ParserErrorWarning, severity: DiagnosticSeverity): Diagnostic[] => {
+    if (diagnostic.category === 'invalid-config' || diagnostic.category === 'invalid-library-config') {
+      // Use the JSON schema validation errors instead
+      return [];
+    }
+
+    // Remove trailing slash
+    const instancePath = diagnostic.instancePath.replace(/\/$/, '');
+
+    if (!(instancePath in pointers)) {
+      return [];
+    }
+
+    const { value: start, valueEnd: end } = pointers[instancePath];
+
+    let { message } = diagnostic;
+    if ('action' in diagnostic.params && typeof diagnostic.params.action === 'string') {
+      message += `\n${diagnostic.params.action}`;
+    }
+
+    return [{
+      severity,
+      range: {
+        start: { line: start.line, character: start.column },
+        end: { line: end.line, character: end.column },
+      },
+      message,
+      code: diagnostic.category,
+      source: 'revisit',
+    }];
+  };
+
+  const diagnostics = [
+    ...parsedConfig.errors.flatMap((error) => convertDiagnostic(error, DiagnosticSeverity.Error)),
+    ...parsedConfig.warnings.flatMap((warning) => convertDiagnostic(warning, DiagnosticSeverity.Warning)),
+  ];
+
+  connection.sendDiagnostics({ uri: e.document.uri, diagnostics });
+});
+
+documents.listen(connection);
+connection.listen();
+
+console.info('LSP started');
