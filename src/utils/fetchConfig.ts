@@ -1,10 +1,10 @@
 import { sanitizeStringForUrl } from './sanitizeStringForUrl';
 import { GlobalConfig, ParsedConfig, StudyConfig } from '../parser/types';
 import { parseStudyConfig } from '../parser/parser';
-import { PREFIX } from './Prefix';
+import { fetchFromPrefix } from './fetchFromPrefix';
 
 async function fetchStudyConfig(configLocation: string) {
-  const config = await (await fetch(`${PREFIX}${configLocation}`)).text();
+  const config = await fetchFromPrefix(configLocation);
   return await parseStudyConfig(config);
 }
 
